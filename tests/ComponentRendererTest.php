@@ -110,6 +110,54 @@ final class ComponentRendererTest extends TestCase
         $this->assertContains('button', $result);
     }
 
+    public function testParseAttributesNormalizesHyphenatedNames()
+    {
+        $attributes = 'hx-post="/delete/1" hx-target="#row" hx-confirm="Sure?"';
+        $result     = $this->invokeMethod($this->renderer, 'parseAttributes', [$attributes]);
+
+        $this->assertSame('/delete/1', $result['hx_post']);
+        $this->assertSame('#row', $result['hx_target']);
+        $this->assertSame('Sure?', $result['hx_confirm']);
+        // The invalid original keys must not linger (extract() would drop them).
+        $this->assertArrayNotHasKey('hx-post', $result);
+    }
+
+    public function testParseAttributesNormalizesOtherInvalidCharacters()
+    {
+        $attributes = 'data-bs-toggle="dropdown" x-on:click="open" :class="active" aria-label="Menu"';
+        $result     = $this->invokeMethod($this->renderer, 'parseAttributes', [$attributes]);
+
+        $this->assertSame('dropdown', $result['data_bs_toggle']);
+        $this->assertSame('open', $result['x_on_click']);
+        $this->assertSame('active', $result['_class']);
+        $this->assertSame('Menu', $result['aria_label']);
+    }
+
+    public function testParseAttributesHandlesValuelessAttribute()
+    {
+        $attributes = 'disabled';
+        $result     = $this->invokeMethod($this->renderer, 'parseAttributes', [$attributes]);
+
+        $this->assertSame('', $result['disabled']);
+    }
+
+    public function testHyphenatedAttributeReachesView()
+    {
+        $view = __DIR__ . '/testHtmxView.php';
+        file_put_contents($view, '<button hx-post="<?= $hx_post ?>" hx-target="<?= $hx_target ?>">x</button>');
+
+        $attributes = $this->invokeMethod($this->renderer, 'parseAttributes', ['hx-post="/save" hx-target="#out"']);
+
+        try {
+            $result = $this->invokeMethod($this->renderer, 'renderView', [$view, $attributes]);
+        } finally {
+            unlink($view);
+        }
+
+        $this->assertStringContainsString('hx-post="/save"', $result);
+        $this->assertStringContainsString('hx-target="#out"', $result);
+    }
+
     public function testRenderView()
     {
         $view = __DIR__ . '/testView.php';

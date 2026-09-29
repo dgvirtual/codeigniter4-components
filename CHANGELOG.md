@@ -6,11 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [unreleased]
+## [0.6.0] — 2026-09-29
 
 - **Remove some Rector rules** that are from an extra package
 - **Make Famous Quotes run async** (for full operability requires to add a route,
   see Component definition for details)
+- **Fix attributes with hyphens being dropped** (`hx-*`, `data-*`, `aria-*`,
+  `x-on:*`, `:*`) — `parseAttributes()` now normalises every non-alphanumeric
+  character in an attribute name to `_` (`hx-post` → `$hx_post`). Previously
+  `extract()` silently skipped such names, so the attribute never reached the
+  component view.
+- **Add tests for the famous-quotes fetch controller**
+  (`Controllers\FamousQuotes`) covering the cache hit, API fetch, `seconds`
+  TTL handling and every fallback path; the controller is now fully covered.
 
 ## [0.5.1] — 2026-07-11
 

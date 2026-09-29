@@ -139,6 +139,32 @@ output:
 />
 ```
 
+#### Attribute names with hyphens (`hx-*`, `data-*`, `aria-*`, …)
+
+Component views are rendered with PHP's `extract()`, which only creates
+variables for valid PHP names. Attributes such as `hx-post`,
+`data-bs-toggle`, `aria-label`, `x-on:click` or `:class` would therefore be
+**silently dropped**. To avoid that, every character that is not a letter,
+digit or underscore is replaced with `_` when the tag is parsed:
+
+| Attribute in the tag | Variable in the component view |
+| -------------------- | ------------------------------ |
+| `hx-post="/save"`    | `$hx_post`                     |
+| `hx-target="#row"`   | `$hx_target`                   |
+| `data-bs-toggle`     | `$data_bs_toggle`              |
+| `aria-label="Menu"`  | `$aria_label`                  |
+
+The component view then writes the original attribute name itself:
+
+```php
+<button
+  <?= isset($hx_post) ? 'hx-post="' . $hx_post . '"' : '' ?>
+  <?= isset($hx_target) ? 'hx-target="' . $hx_target . '"' : '' ?>
+>
+  <?= $slot ?>
+</button>
+```
+
 ### Components With Opening and Closing Tags
 
 You can include the content within the opening and closing tags by inserting the
@@ -345,7 +371,7 @@ Before enabling caching, make sure you account for **every** input that
 influences the HTML output:
 
 | Input source | Covered automatically? |
-|---|---|
+| --- | --- |
 | Tag attributes | Yes |
 | `$slot` content | Yes (it is part of attributes) |
 | View file content | Yes (mtime-based) |

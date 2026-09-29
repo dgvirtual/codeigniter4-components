@@ -186,6 +186,10 @@ class ComponentRenderer
     /**
      * Parses a string to grab any key/value pairs, HTML attributes.
      *
+     * Attribute names are normalised into valid PHP variable names so that
+     * every parsed attribute can actually reach the component view (see
+     * normalizeAttributeName() for the reason).
+     *
      * @param string $attributeString The string containing HTML attributes.
      *
      * @return array The parsed attributes as an associative array.
@@ -216,10 +220,33 @@ class ComponentRenderer
         $attributes = [];
 
         foreach ($matches as $match) {
-            $attributes[$match['attribute']] = $this->stripQuotes($match['value']);
+            $name  = $this->normalizeAttributeName($match['attribute']);
+            $value = isset($match['value']) ? $this->stripQuotes($match['value']) : '';
+
+            $attributes[$name] = $value;
         }
 
         return $attributes;
+    }
+
+    /**
+     * Converts an HTML attribute name into a valid PHP variable name.
+     *
+     * Component views are rendered with extract(), which silently skips any
+     * key that is not a valid variable name. Attribute names such as
+     * `hx-post`, `data-bs-toggle`, `aria-label`, `x-on:click` or `:class`
+     * therefore used to be dropped without warning, so every non-alphanumeric
+     * character is replaced with an underscore (`hx-post` -> `hx_post`).
+     * A component view can then output the original attribute from the
+     * normalised variable, e.g. `hx-post="<?= $hx_post ?>"`.
+     *
+     * @param string $name The raw attribute name.
+     *
+     * @return string A valid PHP variable name.
+     */
+    private function normalizeAttributeName(string $name): string
+    {
+        return preg_replace('/[^A-Za-z0-9_]/', '_', $name) ?? $name;
     }
 
     /**
